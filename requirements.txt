@@ -1,0 +1,4 @@
+pytorch==0.2.0
+tqdm==4.15.0
+numpy
+torch
