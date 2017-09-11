@@ -3,7 +3,6 @@
 from input_data import InputData
 from model import SkipGramModel
 from model import CBOW
-import torch
 import torch.optim as optim
 from tqdm import tqdm
 
@@ -12,18 +11,18 @@ class Word2Vec:
     def __init__(self,
                  input_file_name,
                  output_file_name,
-                 emb_dimension=100,
-                 batch_size=100,
-                 window_size=5,
-                 iteration=5,
-                 initial_lr=0.025,
-                 min_count=5,
-                 using_hs=False,
-                 using_neg=False,
-                 context_size=2,
-                 hidden_size=128,
-                 cbow=None,
-                 skip_gram=None):
+                 emb_dimension,
+                 batch_size,
+                 window_size,
+                 iteration,
+                 initial_lr,
+                 min_count,
+                 using_hs,
+                 using_neg,
+                 context_size,
+                 hidden_size,
+                 cbow,
+                 skip_gram):
         """Initilize class parameters.
         Args:
             input_file_name: Name of a text data from file. Each line is a sentence splited with space.
@@ -78,7 +77,6 @@ class Word2Vec:
         batch_count = self.iteration * pair_count / self.batch_size
         print("batch_count", batch_count)
         process_bar = tqdm(range(int(batch_count)))
-        self.skip_gram_model.save_embedding(self.data.id2word, 'skip_gram_begin_embedding.txt')
         for i in process_bar:
             pos_pairs = self.data.get_batch_pairs(self.batch_size, self.window_size)
             if self.using_hs:
@@ -112,7 +110,6 @@ class Word2Vec:
         batch_count = self.iteration * pair_count / self.batch_size
         print("batch_count", batch_count)
         process_bar = tqdm(range(int(batch_count)))
-        self.cbow_model.save_embedding(self.data.id2word, 'cbow_begin_embedding.txt')
         for i in process_bar:
             pos_pairs = self.data.get_cbow_batch_all_pairs(self.batch_size, self.context_size)
             if self.using_hs:
@@ -139,21 +136,3 @@ class Word2Vec:
         print("CBOW Trained and Saving File......")
         self.cbow_model.save_embedding(self.data.id2word, self.output_file_name)
         print("CBOW Trained and Saved File.")
-
-if __name__ == '__main__':
-    input_file_name = "./zhihu3.txt"
-    output_file_name = "./ccc.txt"
-    cbow = True
-    skip_gram = False
-    using_hs = False
-    word2vec = Word2Vec(input_file_name=input_file_name,
-                        output_file_name=output_file_name,
-                        cbow=cbow,
-                        skip_gram=skip_gram,
-                        context_size=5,  # context_size used by CBOW model windows_size used by Skip-Gram model
-                        using_hs=using_hs)
-    torch.set_num_threads(5)
-    if skip_gram == True:
-        word2vec.skip_gram_train()
-    if cbow == True:
-        word2vec.cbow_train()

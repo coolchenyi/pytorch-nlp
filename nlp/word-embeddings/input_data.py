@@ -4,7 +4,6 @@ import numpy
 from collections import deque
 
 from huffman import HuffmanTree
-numpy.random.seed(12345)
 
 class InputData:
     """Store data for word2vec, such as word map, huffman tree, sampling table and so on.
@@ -207,19 +206,9 @@ class InputData:
             neg_word_pair += zip([pair[0]] *
                                  len(self.huffman_negative[pair[1]]),
                                  self.huffman_negative[pair[1]])
-        # print("hufman pos", pos_word_pair)
-        # print("hufman nef", neg_word_pair)
         return pos_word_pair, neg_word_pair
 
 
     def evaluate_pair_count(self, window_size):
         return self.sentence_length * (2 * window_size - 1) - (
             self.sentence_count - 1) * (1 + window_size) * window_size
-
-
-def test():
-    a = InputData('./zhihu.txt')
-
-
-if __name__ == '__main__':
-    test()
