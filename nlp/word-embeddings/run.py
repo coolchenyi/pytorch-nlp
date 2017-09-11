@@ -11,13 +11,15 @@ def main(args):
                             output_file_name=args.output_file_name,
                             emb_dimension=args.emb_dimension,
                             batch_size=args.batch_size,
+                            # windows_size used by Skip-Gram model
                             window_size=args.window_size,
                             iteration=args.iteration,
                             initial_lr=args.initial_lr,
                             min_count=args.min_count,
                             using_hs=args.using_hs,
                             using_neg=args.using_neg,
-                            context_size=args.context_size,# context_size used by CBOW model windows_size used by Skip-Gram model
+                            # context_size used by CBOW model
+                            context_size=args.context_size,
                             hidden_size=args.hidden_size,
                             cbow=True,
                             skip_gram=False)
@@ -27,14 +29,15 @@ def main(args):
                             output_file_name=args.output_file_name,
                             emb_dimension=args.emb_dimension,
                             batch_size=args.batch_size,
+                            # windows_size used by Skip-Gram model
                             window_size=args.window_size,
                             iteration=args.iteration,
                             initial_lr=args.initial_lr,
                             min_count=args.min_count,
                             using_hs=args.using_hs,
                             using_neg=args.using_neg,
+                            # context_size used by CBOW model
                             context_size=args.context_size,
-                            # context_size used by CBOW model windows_size used by Skip-Gram model
                             hidden_size=args.hidden_size,
                             cbow=False,
                             skip_gram=True)

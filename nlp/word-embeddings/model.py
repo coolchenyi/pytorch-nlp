@@ -1,6 +1,5 @@
 # -*- encoding: utf-8 -*-
 
-
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
@@ -63,25 +62,6 @@ class CBOW(nn.Module):
         self.v_embeddings.weight.data.uniform_(-0, 0)
 
     def forward(self, pos_u, pos_v, neg_u, neg_v):
-
-        # pos_u_m = []
-        # for i in range(len(pos_u)):
-        #     # print((pos_u[i]))
-        #     pos_sum = 0
-        #     for j in range(len(pos_u[i])):
-        #         pos_sum += pos_u[i][j]
-        #     pos_u_m.append(int(pos_sum))
-        # # print(pos_u_m)
-        #
-        # neg_u_m = []
-        # for i in range(len(neg_u)):
-        #     # print((neg_u[i]))
-        #     neg_sum = 0
-        #     for j in range(len(neg_u[i])):
-        #         neg_sum += neg_u[i][j]
-        #     neg_u_m.append(neg_sum)
-        # print(neg_u_m)
-
         losses = []
         emb_u = []
         for i in range(len(pos_u)):
@@ -94,17 +74,6 @@ class CBOW(nn.Module):
         score = F.logsigmoid(score)
         losses.append(sum(score))
 
-        # for i in range(len(pos_u)):
-        #     if i == 0:
-        #         temp = scores
-        #         continue
-        #     scores = torch.mul(emb_u[i], emb_v)
-        #     score = torch.mul(scores, temp)
-        #     # print(score)
-        #     temp = score
-        # score = torch.sum(score, dim=1)
-        # print(score)
-
         neg_emb_u = []
         for i in range(len(neg_u)):
             neg_emb_ui = self.u_embeddings(Variable(torch.LongTensor(neg_u[i])))
@@ -115,18 +84,7 @@ class CBOW(nn.Module):
         neg_score = torch.sum(neg_score, dim=1)
         neg_score = F.logsigmoid(-1 * neg_score)
         losses.append(sum(neg_score))
-        # neg_emb_u = torch.transpose(neg_emb_u, 0, 1)
-        # neg_scores = torch.mul(neg_emb_u[0], neg_emb_v)
-        # for i in range(len(neg_emb_u)):
-        #     if i == 0:
-        #         neg_temp = neg_scores
-        #         continue
-        #     neg_scores = torch.mul(neg_emb_u[i], neg_emb_v)
-        #     neg_score = torch.mul(neg_scores, neg_temp)
-        #     neg_temp = neg_score
-        #     neg_score = torch.sum(neg_score, dim=1)
-        # neg_score = F.logsigmoid(-1 * neg_score)
-        # losses.append(sum(neg_score))
+
         return -1 * sum(losses)
 
     def forwards(self, pos_u, pos_v, neg_u, neg_v):

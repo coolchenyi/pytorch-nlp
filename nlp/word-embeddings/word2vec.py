@@ -6,7 +6,6 @@ from model import CBOW
 import torch.optim as optim
 from tqdm import tqdm
 
-
 class Word2Vec:
     def __init__(self,
                  input_file_name,
@@ -66,12 +65,12 @@ class Word2Vec:
             self.optimizer = optim.SGD(self.cbow_model.parameters(), lr=self.initial_lr)
 
 
-    # @profile
     def skip_gram_train(self):
         """Multiple training.
         Returns:
             None.
         """
+        print("Skip_gram Training......")
         pair_count = self.data.evaluate_pair_count(self.window_size)
         print("pair_count", pair_count)
         batch_count = self.iteration * pair_count / self.batch_size
@@ -100,8 +99,9 @@ class Word2Vec:
                 lr = self.initial_lr * (1.0 - 1.0 * i / batch_count)
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] = lr
+        print("Skip_gram Trained and Saving File......")
         self.skip_gram_model.save_embedding(self.data.id2word, self.output_file_name)
-
+        print("Skip_gram Trained and Saved File.")
 
     def cbow_train(self):
         print("CBOW Training......")
@@ -124,7 +124,6 @@ class Word2Vec:
 
             self.optimizer.zero_grad()
             loss = self.cbow_model.forward(pos_u, pos_v, neg_u, neg_v)
-            # loss = self.cbow_model.forwards(pos_v, pos_u, neg_v, neg_u)
             loss.backward()
             self.optimizer.step()
             process_bar.set_description("Loss: %0.8f, lr: %0.6f" % (loss.data[0], self.optimizer.param_groups[0]['lr']))
