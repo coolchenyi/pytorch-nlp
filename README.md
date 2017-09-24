@@ -26,3 +26,9 @@ cd pytorch-nlp/nlp/word-embeddings
 ## 参考
 
 * https://github.com/bamtercelboo/pytorch_word2vec
+* https://github.com/inejc/paragraph-vectors
+* https://github.com/Shawn1993/cnn-text-classification-pytorch
+* https://github.com/2014mchidamb/TorchGlove
+* https://github.com/SherlockLiao/Char-RNN-PyTorch
+* https://github.com/jinfagang/pytorch_chatbot
+* https://github.com/OpenNMT/OpenNMT-py
