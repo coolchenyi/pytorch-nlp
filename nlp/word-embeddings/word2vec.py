@@ -6,6 +6,7 @@ from model import CBOW
 import torch.optim as optim
 from tqdm import tqdm
 
+
 class Word2Vec:
     def __init__(self,
                  input_file_name,
@@ -63,7 +64,6 @@ class Word2Vec:
             self.cbow_model = CBOW(self.emb_size, self.emb_dimension)
             print("CBOW_model", self.cbow_model)
             self.optimizer = optim.SGD(self.cbow_model.parameters(), lr=self.initial_lr)
-
 
     def skip_gram_train(self):
         """Multiple training.

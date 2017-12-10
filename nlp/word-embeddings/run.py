@@ -4,6 +4,7 @@ import torch
 from word2vec import Word2Vec
 import argparse
 
+
 def main(args):
     torch.set_num_threads(5)
     if args.method == 'cbow':

@@ -5,6 +5,7 @@ from collections import deque
 
 from huffman import HuffmanTree
 
+
 class InputData:
     """Store data for word2vec, such as word map, huffman tree, sampling table and so on.
     Attributes:
@@ -30,7 +31,6 @@ class InputData:
 
     def get_words(self, file_name, min_count):
         self.input_file_name = file_name
-        # self.input_file = open(self.input_file_name)
         self.input_file = open(self.input_file_name, encoding="UTF-8")
         self.sentence_length = 0
         self.sentence_count = 0
@@ -61,7 +61,6 @@ class InputData:
     def init_sample_table(self):
         self.sample_table = []
         sample_table_size = 1e8
-        # pow_frequency = numpy.array(self.word_frequency.values())**0.75
         pow_frequency = numpy.array(list(self.word_frequency.values()))**0.75
         words_pow = sum(pow_frequency)
         ratio = pow_frequency / words_pow
@@ -103,31 +102,13 @@ class InputData:
                 sentence = self.input_file.readline()
                 if sentence is None or sentence == '':
                     continue
-                    # self.input_file = open(self.input_file_name, encoding="utf-8")
-                    # sentence = self.input_file.readline()
-                # if sentence is not None or sentence != "":
+
                 word_ids = []
                 for word in sentence.strip().split(' '):
                     try:
                         word_ids.append(self.word2id[word])
                     except:
                         continue
-                # for i, u in enumerate(word_ids):
-                #     con = []
-                #     for j, v in enumerate(word_ids[max(i - window_size, 0):i + window_size]):
-                #        assert u < self.word_count
-                #        assert v < self.word_count
-                #        if i == j:
-                #            continue
-                #        elif j >= max(0, i - window_size + 1) and j <= min(len(word_ids), i + window_size - 1):
-                #            con.append(v)
-                #     if len(con) == 0:
-                #         continue
-                #     self.cbow_word_pair_catch.append((con, u))
-
-                # for i in range(2, len(word_ids) - 2):
-                #     bow = ([word_ids[i - 2], word_ids[i - 1], word_ids[i + 1], word_ids[i + 2]], word_ids[i])
-                #     self.cbow_word_pair_catch.append(bow)
 
                 for i, u in enumerate(word_ids):
                     contentw = []
@@ -136,26 +117,16 @@ class InputData:
                         assert v < self.word_count
                         if i == j:
                             continue
-                        # elif j >= max(0, i - self.args.window_size + 1) and j <= min(len(word_ids), i + self.args.window_size-1):
-                        elif j >= max(0, i - context_size + 1) and j <= min(len(word_ids), i + context_size-1):
+                        elif max(0, i - context_size + 1) <= j <= min(len(word_ids), i + context_size-1):
                             contentw.append(v)
                     if len(contentw) == 0:
                         continue
                     self.cbow_word_pair_catch.append((contentw, u))
 
-                # for i in range(context_size, len(word_ids) - context_size):
-                #     context = []
-                #     for j in range(context_size, 0, -1):
-                #         context.append(word_ids[i - j])
-                #     for j in range(1, context_size + 1):
-                #         context.append(word_ids[i + j])
-                #     bow = (context, word_ids[i])
-                #     self.cbow_word_pair_catch.append(bow)
         batch_pairs = []
         for _ in range(batch_size):
             batch_pairs.append(self.cbow_word_pair_catch.popleft())
         return batch_pairs
-
 
     def get_cbow_batch_pairs(self, batch_size, window_size):
         batch_pairs = []
@@ -207,7 +178,6 @@ class InputData:
                                  len(self.huffman_negative[pair[1]]),
                                  self.huffman_negative[pair[1]])
         return pos_word_pair, neg_word_pair
-
 
     def evaluate_pair_count(self, window_size):
         return self.sentence_length * (2 * window_size - 1) - (
