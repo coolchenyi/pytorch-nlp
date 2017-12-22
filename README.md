@@ -4,8 +4,6 @@
 
 ## 2 named entity recognition
 
-update soon ...
-
 ## 3 machine translation
 
 update soon ...
