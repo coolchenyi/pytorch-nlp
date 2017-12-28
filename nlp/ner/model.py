@@ -33,14 +33,13 @@ def log_sum_exp(vec):
 class BiLSTM_CRF(nn.Module):
     def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim,
                  pre_word_embeds=None, use_gpu=False,
-                 cap_embedding_dim=None, use_crf=True):
+                 use_crf=True):
         super(BiLSTM_CRF, self).__init__()
         self.use_gpu = use_gpu
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
         self.vocab_size = vocab_size
         self.tag_to_ix = tag_to_ix
-        self.cap_embedding_dim = cap_embedding_dim
         self.use_crf = use_crf
         self.tagset_size = len(tag_to_ix)
 
@@ -86,7 +85,6 @@ class BiLSTM_CRF(nn.Module):
         return score
 
     def _get_lstm_features(self, sentence):
-
         embeds = self.word_embeds(sentence)
         embeds = embeds.unsqueeze(1)
         embeds = self.dropout(embeds)

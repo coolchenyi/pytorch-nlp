@@ -35,11 +35,13 @@ def train():
                        pre_word_embeds=word_embeds,
                        use_crf=parameters['crf'])
     if parameters['reload']:
+        print("reload pre trained model %s" % model_name)
         model.load_state_dict(torch.load(model_name))
     if use_gpu:
         model.cuda()
-    learning_rate = 0.015
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+    learning_rate = 0.0015
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     loss = 0.0
     best_dev_f = -1.0
     plot_every = 20
@@ -78,7 +80,7 @@ def train():
                 model.train(False)
                 best_dev_f, new_dev_f, save = evaluating(model, dev_data, best_dev_f, tag_to_id, id_to_tag)
                 if save:
-                    torch.save(model, model_name)
+                    torch.save(model.state_dict(), model_name + str(count))
                 model.train(True)
 
             if count % len(train_data) == 0:
@@ -190,7 +192,7 @@ if __name__ == "__main__":
         type='float', help="Droupout on the input (0 = no dropout)"
     )
     optparser.add_option(
-        "-r", "--reload", default="0",
+        "-r", "--reload", default="1",
         type='int', help="Reload the last saved model"
     )
     optparser.add_option(
@@ -198,11 +200,7 @@ if __name__ == "__main__":
         type='int', help='whether or not to ues gpu'
     )
     optparser.add_option(
-        '--loss', default='loss.txt',
-        help='loss file location'
-    )
-    optparser.add_option(
-        '--name', default='test',
+        '--name', default='model',
         help='model name'
     )
     opts = optparser.parse_args()[0]
