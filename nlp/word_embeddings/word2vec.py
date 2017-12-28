@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 
-from input_data import InputData
-from model import SkipGramModel
-from model import CBOW
+from nlp.word_embeddings.input_data import InputData
+from nlp.word_embeddings.model import SkipGramModel
+from nlp.word_embeddings.model import CBOW
 import torch.optim as optim
 from tqdm import tqdm
 

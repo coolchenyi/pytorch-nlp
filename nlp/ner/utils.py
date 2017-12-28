@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
 import numpy as np
 
 
 models_path = "./models"
 eval_path = "../../evaluation"
 eval_temp = os.path.join(eval_path, "temp")
-eval_script = os.path.join(eval_path, "conlleval")
 
 
 def get_name(parameters):
@@ -65,13 +63,6 @@ def create_mapping(dico):
     id_to_item = {i: v[0] for i, v in enumerate(sorted_items)}
     item_to_id = {v: k for k, v in id_to_item.items()}
     return item_to_id, id_to_item
-
-
-def zero_digits(s):
-    """
-    Replace every digit in a string by a zero.
-    """
-    return re.sub('\d', '0', s)
 
 
 def iob2(tags):

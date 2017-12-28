@@ -9,17 +9,14 @@ from nlp.ner.loader import *
 
 def preprocess_data(parameters, opts, mapping_file):
     lower = parameters['lower']
-    zeros = parameters['zeros']
     tag_scheme = parameters['tag_scheme']
-    train_sentences = loader.load_sentences(opts.train, lower, zeros)
-    dev_sentences = loader.load_sentences(opts.dev, lower, zeros)
-    test_sentences = loader.load_sentences(opts.test, lower, zeros)
-    test_train_sentences = loader.load_sentences(opts.test_train, lower, zeros)
+    train_sentences = loader.load_sentences(opts.train)
+    dev_sentences = loader.load_sentences(opts.dev)
+    test_sentences = loader.load_sentences(opts.test)
 
     update_tag_scheme(train_sentences, tag_scheme)
     update_tag_scheme(dev_sentences, tag_scheme)
     update_tag_scheme(test_sentences, tag_scheme)
-    update_tag_scheme(test_train_sentences, tag_scheme)
 
     dico_words_train = word_mapping(train_sentences, lower)[0]
     # 将pretaind word2vec中的词加入词典中
@@ -31,7 +28,6 @@ def preprocess_data(parameters, opts, mapping_file):
         ) if not parameters['all_emb'] else None
     )
 
-    # dico_chars, char_to_id, id_to_char = char_mapping(train_sentences)
     dico_tags, tag_to_id, id_to_tag = tag_mapping(train_sentences)
 
     train_data = prepare_dataset(train_sentences, word_to_id, tag_to_id, lower)
@@ -61,7 +57,6 @@ def preprocess_data(parameters, opts, mapping_file):
         mappings = {
             'word_to_id': word_to_id,
             'tag_to_id': tag_to_id,
-            # 'char_to_id': char_to_id,
             'parameters': parameters,
             'word_embeds': word_embeds
         }

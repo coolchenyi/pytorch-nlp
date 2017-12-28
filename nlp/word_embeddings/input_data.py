@@ -3,7 +3,7 @@
 import numpy
 from collections import deque
 
-from huffman import HuffmanTree
+from nlp.word_embeddings.huffman import HuffmanTree
 
 
 class InputData:

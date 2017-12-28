@@ -1,24 +1,14 @@
 import os
 import re
 import codecs
-import unicodedata
-from nlp.ner.utils import create_dico, create_mapping, zero_digits
+from nlp.ner.utils import create_dico, create_mapping
 from nlp.ner.utils import iob2, iob_iobes
 import model
-import string
 import random
 import numpy as np
 
 
-# def unicodeToAscii(s):
-#     return ''.join(
-#         c for c in unicodedata.normalize('NFD', s)
-#         if unicodedata.category(c) != 'Mn'
-#         and c in string.ascii_letters + " .,;'-"
-#     )
-
-
-def load_sentences(path, lower, zeros):
+def load_sentences(path):
     """
     Load sentences. A line must contain at least a word and its tag.
     Sentences are separated by empty lines.
@@ -26,7 +16,7 @@ def load_sentences(path, lower, zeros):
     sentences = []
     sentence = []
     for line in codecs.open(path, 'r', 'utf-8'):
-        line = zero_digits(line.rstrip()) if zeros else line.rstrip()
+        line = line.rstrip()
         if not line:
             if len(sentence) > 0:
                 if 'DOCSTART' not in sentence[0][0]:
@@ -91,7 +81,6 @@ def char_mapping(sentences):
     chars = ["".join([w[0] for w in s]) for s in sentences]
     dico = create_dico(chars)
     dico['<PAD>'] = 10000000
-    # dico[';'] = 0
     char_to_id, id_to_char = create_mapping(dico)
     print("Found %i unique characters" % len(dico))
     return dico, char_to_id, id_to_char
@@ -108,24 +97,6 @@ def tag_mapping(sentences):
     tag_to_id, id_to_tag = create_mapping(dico)
     print("Found %i unique named entity tags" % len(dico))
     return dico, tag_to_id, id_to_tag
-
-
-# def cap_feature(s):
-#     """
-#     Capitalization feature:
-#     0 = low caps
-#     1 = all caps
-#     2 = first letter caps
-#     3 = one capital (not first letter)
-#     """
-#     if s.lower() == s:
-#         return 0
-#     elif s.upper() == s:
-#         return 1
-#     elif s[0].upper() == s[0]:
-#         return 2
-#     else:
-#         return 3
 
 
 def prepare_sentence(str_words, word_to_id, char_to_id, lower=False):
@@ -159,16 +130,11 @@ def prepare_dataset(sentences, word_to_id, tag_to_id, lower=True):
         str_words = [w[0] for w in s]
         words = [word_to_id[f(w) if f(w) in word_to_id else '<UNK>']
                  for w in str_words]
-        # Skip characters that are not in the training set
-        # chars = [[char_to_id[c] for c in w if c in char_to_id]
-        #          for w in str_words]
-        # caps = [cap_feature(w) for w in str_words]
+
         tags = [tag_to_id[w[-1]] for w in s]
         data.append({
             'str_words': str_words,
             'words': words,
-            # 'chars': chars,
-            # 'caps': caps,
             'tags': tags,
         })
     return data

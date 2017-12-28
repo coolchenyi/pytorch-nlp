@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import torch
-from word2vec import Word2Vec
+from nlp.word_embeddings.word2vec import Word2Vec
 import argparse
 
 

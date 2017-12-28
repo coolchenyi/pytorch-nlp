@@ -98,12 +98,11 @@ def evaluate(iterable, options=None):
                                        last_guessed_type, guessed_type)
 
         if in_correct:
-            if (end_correct and end_guessed and
-                last_guessed_type == last_correct_type):
+            if end_correct and end_guessed and last_guessed_type == last_correct_type:
                 in_correct = False
                 counts.correct_chunk += 1
                 counts.t_correct_chunk[last_correct_type] += 1
-            elif (end_correct != end_guessed or guessed_type != correct_type):
+            elif end_correct != end_guessed or guessed_type != correct_type:
                 in_correct = False
 
         if start_correct and start_guessed and guessed_type == correct_type:

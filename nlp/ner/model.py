@@ -32,38 +32,17 @@ def log_sum_exp(vec):
 
 class BiLSTM_CRF(nn.Module):
     def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim,
-                 pre_word_embeds=None, char_embedding_dim=25, use_gpu=False,
-                 n_cap=None, cap_embedding_dim=None, use_crf=True, char_mode='CNN'):
+                 pre_word_embeds=None, use_gpu=False,
+                 cap_embedding_dim=None, use_crf=True):
         super(BiLSTM_CRF, self).__init__()
         self.use_gpu = use_gpu
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
         self.vocab_size = vocab_size
         self.tag_to_ix = tag_to_ix
-        # self.n_cap = n_cap
         self.cap_embedding_dim = cap_embedding_dim
         self.use_crf = use_crf
         self.tagset_size = len(tag_to_ix)
-        # self.out_channels = char_lstm_dim
-        # self.char_mode = char_mode
-
-        # print('char_mode: %s, out_channels: %d, hidden_dim: %d, ' % (char_mode, hidden_dim))
-
-        # if self.n_cap and self.cap_embedding_dim:
-        #     self.cap_embeds = nn.Embedding(self.n_cap, self.cap_embedding_dim)
-        #     init_embedding(self.cap_embeds.weight)
-
-        # if char_embedding_dim is not None:
-        #     self.char_lstm_dim = char_lstm_dim
-        #     self.char_embeds = nn.Embedding(len(char_to_ix), char_embedding_dim)
-        #     init_embedding(self.char_embeds.weight)
-        #     if self.char_mode == 'LSTM':
-        #         self.char_lstm = nn.LSTM(char_embedding_dim, char_lstm_dim,
-        #                                  num_layers=1, bidirectional=True)
-        #         init_lstm(self.char_lstm)
-        #     if self.char_mode == 'CNN':
-        #         self.char_cnn3 = nn.Conv2d(in_channels=1, out_channels=self.out_channels,
-        #                                    kernel_size=(3, char_embedding_dim), padding=(2,0))
 
         self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
         if pre_word_embeds is not None:
@@ -73,37 +52,16 @@ class BiLSTM_CRF(nn.Module):
             self.pre_word_embeds = False
 
         self.dropout = nn.Dropout(0.5)
-        # if self.n_cap and self.cap_embedding_dim:
-        #     if self.char_mode == 'LSTM':
-        #         self.lstm = nn.LSTM(embedding_dim+char_lstm_dim * 2 + cap_embedding_dim,
-        #                             hidden_dim, bidirectional=True)
-        #     if self.char_mode == 'CNN':
-        #         self.lstm = nn.LSTM(embedding_dim+self.out_channels + cap_embedding_dim,
-        #                             hidden_dim, bidirectional=True)
-        # else:
-        #     if self.char_mode == 'LSTM':
-        #         self.lstm = nn.LSTM(embedding_dim + char_lstm_dim * 2,
-        #                             hidden_dim, bidirectional=True)
-        #     if self.char_mode == 'CNN':
-        #         self.lstm = nn.LSTM(embedding_dim + self.out_channels,
-        #                             hidden_dim, bidirectional=True)
 
-        # if self.n_cap and self.cap_embedding_dim:
-        #     self.lstm = nn.LSTM(embedding_dim + cap_embedding_dim,
-        #                         hidden_dim, bidirectional=True)
-        # else:
-        self.lstm = nn.LSTM(embedding_dim,
-                            hidden_dim, bidirectional=True)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, bidirectional=True)
+
         init_lstm(self.lstm)
-        # self.hw_trans = nn.Linear(self.out_channels, self.out_channels)
-        # self.hw_gate = nn.Linear(self.out_channels, self.out_channels)
+
         self.h2_h1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.tanh = nn.Tanh()
         self.hidden2tag = nn.Linear(hidden_dim * 2, self.tagset_size)
         init_linear(self.h2_h1)
         init_linear(self.hidden2tag)
-        # init_linear(self.hw_gate)
-        # init_linear(self.hw_trans)
 
         if self.use_crf:
             self.transitions = nn.Parameter(
@@ -128,38 +86,8 @@ class BiLSTM_CRF(nn.Module):
         return score
 
     def _get_lstm_features(self, sentence):
-        # if self.char_mode == 'LSTM':
-        #     chars_embeds = self.char_embeds(chars2).transpose(0, 1)
-        #     packed = torch.nn.utils.rnn.pack_padded_sequence(chars_embeds, chars2_length)
-        #     lstm_out, _ = self.char_lstm(packed)
-        #     outputs, output_lengths = torch.nn.utils.rnn.pad_packed_sequence(lstm_out)
-        #     outputs = outputs.transpose(0, 1)
-        #     chars_embeds_temp = Variable(torch.FloatTensor(torch.zeros((outputs.size(0), outputs.size(2)))))
-        #     if self.use_gpu:
-        #         chars_embeds_temp = chars_embeds_temp.cuda()
-        #     for i, index in enumerate(output_lengths):
-        #         chars_embeds_temp[i] = torch.cat((outputs[i, index-1, :self.char_lstm_dim],
-        #                                           outputs[i, 0, self.char_lstm_dim:]))
-        #     chars_embeds = chars_embeds_temp.clone()
-        #     for i in range(chars_embeds.size(0)):
-        #         chars_embeds[d[i]] = chars_embeds_temp[i]
-        #
-        # if self.char_mode == 'CNN':
-        #     chars_embeds = self.char_embeds(chars2).unsqueeze(1)
-        #     chars_cnn_out3 = self.char_cnn3(chars_embeds)
-        #     chars_embeds = nn.functional.max_pool2d(chars_cnn_out3,
-        #                                             kernel_size=(chars_cnn_out3.size(2), 1)).view(chars_cnn_out3.size(0),
-        #                                             self.out_channels)
 
         embeds = self.word_embeds(sentence)
-        # if self.n_cap and self.cap_embedding_dim:
-        #     cap_embedding = self.cap_embeds(caps)
-
-        # if self.n_cap and self.cap_embedding_dim:
-        #     embeds = torch.cat((embeds, cap_embedding), 1)
-        # else:
-        #     embeds = embeds   #torch.cat((embeds), 1)
-
         embeds = embeds.unsqueeze(1)
         embeds = self.dropout(embeds)
         lstm_out, _ = self.lstm(embeds)
