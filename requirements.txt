@@ -3,3 +3,6 @@ tqdm==4.15.0
 python==3.5.3
 numpy
 torch
+six
+requests
+pycrayon
