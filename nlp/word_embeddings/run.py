@@ -51,7 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_file_name', type=str,
                         default='/Users/endy/nlp/pytorch-nlp/data/word2vec/word2vec.txt')
 
-    parser.add_argument('--method', type=str, default='skip_gram')
+    parser.add_argument('--method', type=str, default='cbow')
 
     parser.add_argument('--emb_dimension', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=100)
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     parser.add_argument('--min_count', type=int, default=5)
     parser.add_argument('--hidden_size', type=int, default=128)
 
-    parser.add_argument('--using_hs', type=bool, default=False)
+    parser.add_argument('--using_hs', type=bool, default=True)
     parser.add_argument('--using_neg', type=bool, default=False)
 
     parser.add_argument('--num_threads', type=int, default=5)

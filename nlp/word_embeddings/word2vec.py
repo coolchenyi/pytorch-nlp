@@ -27,7 +27,7 @@ class Word2Vec:
         Args:
             input_file_name: Name of a text data from file. Each line is a sentence splited with space.
             output_file_name: Name of the final embedding file.
-            emb_dimention: Embedding dimention, typically from 50 to 500.
+            emb_dimension: Embedding dimension, typically from 50 to 500.
             batch_size: The count of word pairs for one forward.
             window_size: Max skip length between words.
             iteration: Control the multiple training iterations.

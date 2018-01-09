@@ -23,12 +23,14 @@ class InputData:
         self.word_pair_catch = deque()
         self.cbow_word_pair_catch = deque()
         self.init_sample_table()
+        # 根据词频构建 huffman 树
         tree = HuffmanTree(self.word_frequency)
         print("tree ", tree)
         self.huffman_positive, self.huffman_negative = tree.get_huffman_code_and_path()
         print('Word Count: %d' % len(self.word2id))
-        print('Sentence Length: %d' % (self.sentence_length))
+        print('Sentence Length: %d' % self.sentence_length)
 
+    # 计算id2word, word2id 以及词频
     def get_words(self, file_name, min_count):
         self.input_file_name = file_name
         self.input_file = open(self.input_file_name, encoding="UTF-8")

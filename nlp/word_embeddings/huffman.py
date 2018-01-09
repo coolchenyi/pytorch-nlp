@@ -71,8 +71,8 @@ class HuffmanTree:
                     pos.append(self.huffman[wid].path[i])
                 else:
                     neg.append(self.huffman[wid].path[i])
-            positive.append(pos)
-            negative.append(neg)
+            positive.append(pos)  # 编码为0的结点
+            negative.append(neg)  # 编码为1的结点
         return positive, negative
 
 
