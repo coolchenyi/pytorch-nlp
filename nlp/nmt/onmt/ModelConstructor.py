@@ -3,10 +3,6 @@
 import torch
 import torch.nn as nn
 
-import nlp.nmt.onmt
-import nlp.nmt.onmt.io
-import nlp.nmt.onmt.Models
-import nlp.nmt.onmt.modules
 from nlp.nmt.onmt.Models import NMTModel, MeanEncoder, RNNEncoder, \
                         StdRNNDecoder, InputFeedRNNDecoder
 from nlp.nmt.onmt.modules import Embeddings, ImageEncoder, CopyGenerator, \
