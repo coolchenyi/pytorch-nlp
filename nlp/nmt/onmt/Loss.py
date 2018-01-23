@@ -3,9 +3,8 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-
-import nlp.nmt.onmt
-import nlp.nmt.onmt.io
+from nlp.nmt.onmt.io.IO import PAD_WORD
+from nlp.nmt.onmt.Trainer import Statistics
 
 
 class LossComputeBase(nn.Module):
@@ -22,12 +21,13 @@ class LossComputeBase(nn.Module):
              distribution over the target vocabulary.
         tgt_vocab (:obj:`Vocab`) :
              torchtext vocab object representing the target output
+        normalzation (str): normalize by "sents" or "tokens"
     """
     def __init__(self, generator, tgt_vocab):
         super(LossComputeBase, self).__init__()
         self.generator = generator
         self.tgt_vocab = tgt_vocab
-        self.padding_idx = tgt_vocab.stoi[nlp.nmt.onmt.io.PAD_WORD]
+        self.padding_idx = tgt_vocab.stoi[PAD_WORD]
 
     def _make_shard_state(self, batch, output, range_, attns=None):
         """
@@ -74,7 +74,8 @@ class LossComputeBase(nn.Module):
         return batch_stats
 
     def sharded_compute_loss(self, batch, output, attns,
-                             cur_trunc, trunc_size, shard_size):
+                             cur_trunc, trunc_size, shard_size,
+                             normalization):
         """Compute the forward loss and backpropagate.  Computation is done
         with shards and optionally truncation for memory efficiency.
         Also supports truncated BPTT for long sequences by taking a
@@ -96,13 +97,14 @@ class LossComputeBase(nn.Module):
         Returns:
             :obj:`onmt.Statistics`: validation loss statistics
         """
-        batch_stats = nlp.nmt.onmt.Statistics()
+        batch_stats = Statistics()
         range_ = (cur_trunc, cur_trunc + trunc_size)
         shard_state = self._make_shard_state(batch, output, range_, attns)
 
         for shard in shards(shard_state, shard_size):
             loss, stats = self._compute_loss(batch, **shard)
-            loss.div(batch.batch_size).backward()
+
+            loss.div(normalization).backward()
             batch_stats.update(stats)
 
         return batch_stats
@@ -121,7 +123,7 @@ class LossComputeBase(nn.Module):
         num_correct = pred.eq(target) \
                           .masked_select(non_padding) \
                           .sum()
-        return nlp.nmt.onmt.Statistics(loss[0], non_padding.sum(), num_correct)
+        return Statistics(loss[0], non_padding.sum(), num_correct)
 
     def _bottle(self, v):
         return v.view(-1, v.size(2))
@@ -134,7 +136,8 @@ class NMTLossCompute(LossComputeBase):
     """
     Standard NMT Loss Computation.
     """
-    def __init__(self, generator, tgt_vocab, label_smoothing=0.0):
+    def __init__(self, generator, tgt_vocab, normalization="sents",
+                 label_smoothing=0.0):
         super(NMTLossCompute, self).__init__(generator, tgt_vocab)
         assert (label_smoothing >= 0.0 and label_smoothing <= 1.0)
 

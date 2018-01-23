@@ -159,7 +159,7 @@ class GlobalAttention(nn.Module):
             align.data.masked_fill_(1 - mask, -float('inf'))
 
         # Softmax to normalize attention weights
-        align_vectors = self.sm(align.view(batch*targetL, sourceL))
+        align_vectors = self.sm(align.view(batch * targetL, sourceL))
         align_vectors = align_vectors.view(batch, targetL, sourceL)
 
         # each context vector c_t is the weighted average

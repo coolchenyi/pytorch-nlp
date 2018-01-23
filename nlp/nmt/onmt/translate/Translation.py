@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import torch
-import nlp.nmt.onmt.io
+from nlp.nmt.onmt.io.DatasetBase import UNK, EOS_WORD
 
 
 class TranslationBuilder(object):
@@ -33,12 +33,12 @@ class TranslationBuilder(object):
                 tokens.append(vocab.itos[tok])
             else:
                 tokens.append(src_vocab.itos[tok - len(vocab)])
-            if tokens[-1] == nlp.nmt.onmt.io.EOS_WORD:
+            if tokens[-1] == EOS_WORD:
                 tokens = tokens[:-1]
                 break
         if self.replace_unk and (attn is not None) and (src is not None):
             for i in range(len(tokens)):
-                if tokens[i] == vocab.itos[nlp.nmt.onmt.io.UNK]:
+                if tokens[i] == vocab.itos[UNK]:
                     _, maxIndex = attn[i].max(0)
                     tokens[i] = src_raw[maxIndex[0]]
         return tokens

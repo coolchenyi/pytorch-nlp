@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import glob
-import sys
 import argparse
-import torch
 import os
 from nlp.nmt import opts
-import nlp.nmt.onmt.io
+from nlp.nmt.onmt.io.IO import *
+from nlp.nmt.onmt.io.TextDataset import *
 
 
 def check_existing_pt_files(opt):
@@ -31,6 +30,7 @@ def parse_args():
 
     opt = parser.parse_args()
     torch.manual_seed(opt.seed)
+
     check_existing_pt_files(opt)
 
     return opt
@@ -38,45 +38,62 @@ def parse_args():
 
 def build_save_text_dataset_in_shards(src_corpus, tgt_corpus, fields,
                                       corpus_type, opt):
+    '''
+    Divide the big corpus into shards, and build dataset separately.
+    This is currently only for data_type=='text'.
+    The reason we do this is to avoid taking up too much memory due
+    to sucking in a huge corpus file.
+    To tackle this, we only read in part of the corpus file of size
+    `max_shard_size`(actually it is multiples of 64 bytes that equals
+    or is slightly larger than this size), and process it into dataset,
+    then write it to disk along the way. By doing this, we only focus on
+    part of the corpus at any moment, thus effectively reducing memory use.
+    According to test, this method can reduce memory footprint by ~50%.
+    Note! As we process along the shards, previous shards might still
+    stay in memory, but since we are done with them, and no more
+    reference to them, if there is memory tight situation, the OS could
+    easily reclaim these memory.
+    If `max_shard_size` is 0 or is larger than the corpus size, it is
+    effectively preprocessed into one dataset, i.e. no sharding.
+    '''
+
     corpus_size = os.path.getsize(src_corpus)
-    if corpus_size > 10 * (1024 ** 2) and opt.max_shard_size == 0:
-        print("Warning! The corpus %s is larger than 10M bytes, you can "
+    if corpus_size > 10 * (1024**2) and opt.max_shard_size == 0:
+        print("Warning. The corpus %s is larger than 10M bytes, you can "
               "set '-max_shard_size' to process it by small shards "
-              "to avoid memory hogging problem !!!" % src_corpus)
+              "to use less memory." % src_corpus)
 
     ret_list = []
-    src_iter = nlp.nmt.onmt.io.ShardedTextCorpusIterator(
-        src_corpus, opt.src_seq_length_trunc,
-        "src", opt.max_shard_size)
+    src_iter = ShardedTextCorpusIterator(
+                src_corpus, opt.src_seq_length_trunc,
+                "src", opt.max_shard_size)
+    tgt_iter = ShardedTextCorpusIterator(
+                tgt_corpus, opt.tgt_seq_length_trunc,
+                "tgt", opt.max_shard_size,
+                assoc_iter=src_iter)
 
-    tgt_iter = nlp.nmt.onmt.io.ShardedTextCorpusIterator(
-        tgt_corpus, opt.tgt_seq_length_trunc,
-        "tgt", opt.max_shard_size,
-        assoc_iter=src_iter)
+    print(' * divide corpus into shards and build dataset separately'
+          '(shard_size = %d bytes).' % opt.max_shard_size)
 
     index = 0
     while not src_iter.hit_end():
         index += 1
-        dataset = nlp.nmt.onmt.io.TextDataset(
-            fields, src_iter, tgt_iter,
-            src_iter.num_feats, tgt_iter.num_feats,
-            src_seq_length=opt.src_seq_length,
-            tgt_seq_length=opt.tgt_seq_length,
-            dynamic_dict=opt.dynamic_dict)
+        dataset = TextDataset(
+                fields, src_iter, tgt_iter,
+                src_iter.num_feats, tgt_iter.num_feats,
+                src_seq_length=opt.src_seq_length,
+                tgt_seq_length=opt.tgt_seq_length,
+                dynamic_dict=opt.dynamic_dict)
 
         # We save fields in vocab.pt seperately, so make it empty.
-        saved_fields = dataset.fields
         dataset.fields = []
+
         pt_file = "{:s}.{:s}.{:d}.pt".format(
-            opt.save_data, corpus_type, index)
+                opt.save_data, corpus_type, index)
+        print(" * saving train data shard to %s." % pt_file)
         torch.save(dataset, pt_file)
 
-        dataset.fields = saved_fields
-        ret_list.append(dataset)
-
-    if index == 1:
-        # Only one shard, strip the index in the filename.
-        os.rename(pt_file, opt.save_data + '.' + corpus_type + '.pt')
+        ret_list.append(pt_file)
 
     return ret_list
 
@@ -101,7 +118,7 @@ def build_save_dataset(corpus_type, fields, opt):
     # preprocess sharding. We only build a monolithic dataset.
     # But since the interfaces are uniform, it would be not hard
     # to do this should users need this feature.
-    dataset = nlp.nmt.onmt.io.build_dataset(
+    dataset = build_dataset(
                 fields, opt.data_type, src_corpus, tgt_corpus,
                 src_dir=opt.src_dir,
                 src_seq_length=opt.src_seq_length,
@@ -115,17 +132,17 @@ def build_save_dataset(corpus_type, fields, opt):
                 window=opt.window)
 
     # We save fields in vocab.pt seperately, so make it empty.
-    saved_fields = dataset.fields
     dataset.fields = []
+
     pt_file = "{:s}.{:s}.pt".format(opt.save_data, corpus_type)
+    print(" * saving train dataset to %s." % pt_file)
     torch.save(dataset, pt_file)
-    dataset.fields = saved_fields
 
-    return [dataset]
+    return [pt_file]
 
 
-def build_save_vocab(train_dataset, opt):
-    fields = nlp.nmt.onmt.io.build_vocab(train_dataset, opt.data_type,
+def build_save_vocab(train_dataset, fields, opt):
+    fields = build_vocab(train_dataset, fields, opt.data_type,
                                  opt.share_vocab,
                                  opt.src_vocab_size,
                                  opt.src_words_min_frequency,
@@ -134,21 +151,26 @@ def build_save_vocab(train_dataset, opt):
 
     # Can't save fields, so remove/reconstruct at training time.
     vocab_file = opt.save_data + '.vocab.pt'
-    torch.save(nlp.nmt.onmt.io.save_fields_to_vocab(fields), vocab_file)
+    torch.save(save_fields_to_vocab(fields), vocab_file)
 
 
 def main():
     opt = parse_args()
-    print('Preparing for training ...')
-    src_nfeats = nlp.nmt.onmt.io.get_num_features(opt.data_type, opt.train_src, 'src')
-    tgt_nfeats = nlp.nmt.onmt.io.get_num_features(opt.data_type, opt.train_tgt, 'tgt')
-    fields = nlp.nmt.onmt.io.get_fields(opt.data_type, src_nfeats, tgt_nfeats)
+
+    print("Extracting features...")
+    src_nfeats = get_num_features(opt.data_type, opt.train_src, 'src')
+    tgt_nfeats = get_num_features(opt.data_type, opt.train_tgt, 'tgt')
+    print(" * number of source features: %d." % src_nfeats)
+    print(" * number of target features: %d." % tgt_nfeats)
+
+    print("Loading Fields object...")
+    fields = get_fields(opt.data_type, src_nfeats, tgt_nfeats)
 
     print("Building & saving training data...")
-    train_datasets = build_save_dataset('train', fields, opt)
+    train_dataset_files = build_save_dataset('train', fields, opt)
 
     print("Building & saving vocabulary...")
-    build_save_vocab(train_datasets, opt)
+    build_save_vocab(train_dataset_files, fields, opt)
 
     print("Building & saving validation data...")
     build_save_dataset('valid', fields, opt)

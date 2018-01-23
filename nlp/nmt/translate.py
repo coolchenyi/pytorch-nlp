@@ -7,26 +7,48 @@ import codecs
 import torch
 
 from itertools import count
+from nlp.nmt import opts
+from nlp.nmt.onmt.io.IO import build_dataset, OrderedIterator
+from nlp.nmt.onmt.translate import Translator, Translation
+from nlp.nmt.onmt.translate.Beam import GNMTGlobalScorer
+from nlp.nmt.onmt import ModelConstructor
 
-import nlp.nmt.onmt.io
-import nlp.nmt.onmt.translate
-import nlp.nmt.onmt
-import nlp.nmt.onmt.ModelConstructor
-import nlp.nmt.onmt.modules
-import nlp.nmt.opts
 
 parser = argparse.ArgumentParser(
     description='translate.py',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-nlp.nmt.opts.add_md_help_argument(parser)
-nlp.nmt.opts.translate_opts(parser)
+opts.add_md_help_argument(parser)
+opts.translate_opts(parser)
 
 opt = parser.parse_args()
 
 
+def _report_score(name, score_total, words_total):
+    print("%s AVG SCORE: %.4f, %s PPL: %.4f" % (
+        name, score_total / words_total,
+        name, math.exp(-score_total / words_total)))
+
+
+def _report_bleu():
+    import subprocess
+    print()
+    res = subprocess.check_output(
+        "perl tools/multi-bleu.perl %s < %s" % (opt.tgt, opt.output),
+        shell=True).decode("utf-8")
+    print(">> " + res.strip())
+
+
+def _report_rouge():
+    import subprocess
+    res = subprocess.check_output(
+        "python tools/test_rouge.py -r %s -c %s" % (opt.tgt, opt.output),
+        shell=True).decode("utf-8")
+    print(res.strip())
+
+
 def main():
     dummy_parser = argparse.ArgumentParser(description='train.py')
-    nlp.nmt.opts.model_opts(dummy_parser)
+    opts.model_opts(dummy_parser)
     dummy_opt = dummy_parser.parse_known_args([])[0]
 
     opt.cuda = opt.gpu > -1
@@ -35,13 +57,13 @@ def main():
 
     # Load the model.
     fields, model, model_opt = \
-        nlp.nmt.onmt.ModelConstructor.load_test_model(opt, dummy_opt.__dict__)
+        ModelConstructor.load_test_model(opt, dummy_opt.__dict__)
 
     # File to write sentences to.
     out_file = codecs.open(opt.output, 'w', 'utf-8')
 
     # Test data
-    data = nlp.nmt.onmt.io.build_dataset(fields, opt.data_type,
+    data = build_dataset(fields, opt.data_type,
                                  opt.src, opt.tgt,
                                  src_dir=opt.src_dir,
                                  sample_rate=opt.sample_rate,
@@ -50,22 +72,25 @@ def main():
                                  window=opt.window,
                                  use_filter_pred=False)
 
-    test_data = nlp.nmt.onmt.io.OrderedIterator(
+    # Sort batch by decreasing lengths of sentence required by pytorch.
+    # sort=False means "Use dataset's sortkey instead of iterator's".
+    data_iter = OrderedIterator(
         dataset=data, device=opt.gpu,
         batch_size=opt.batch_size, train=False, sort=False,
-        shuffle=False)
+        sort_within_batch=True, shuffle=False)
 
     # Translator
-    scorer = nlp.nmt.onmt.translate.GNMTGlobalScorer(opt.alpha, opt.beta)
-    translator = nlp.nmt.onmt.translate.Translator(model, fields,
+    scorer = GNMTGlobalScorer(opt.alpha, opt.beta)
+    translator = Translator.Translator(model, fields,
                                            beam_size=opt.beam_size,
                                            n_best=opt.n_best,
                                            global_scorer=scorer,
-                                           max_length=opt.max_sent_length,
+                                           max_length=opt.max_length,
                                            copy_attn=model_opt.copy_attn,
                                            cuda=opt.cuda,
-                                           beam_trace=opt.dump_beam != "")
-    builder = nlp.nmt.onmt.translate.TranslationBuilder(
+                                           beam_trace=opt.dump_beam != "",
+                                           min_length=opt.min_length)
+    builder = Translation.TranslationBuilder(
         data, translator.fields,
         opt.n_best, opt.replace_unk, opt.tgt)
 
@@ -74,7 +99,7 @@ def main():
     pred_score_total, pred_words_total = 0, 0
     gold_score_total, gold_words_total = 0, 0
 
-    for batch in test_data:
+    for batch in data_iter:
         batch_data = translator.translate_batch(batch, data)
         translations = builder.from_batch(batch_data)
 
@@ -96,14 +121,13 @@ def main():
                 output = trans.log(sent_number)
                 os.write(1, output.encode('utf-8'))
 
-    def report_score(name, score_total, words_total):
-        print("%s AVG SCORE: %.4f, %s PPL: %.4f" % (
-            name, score_total / words_total,
-            name, math.exp(-score_total/words_total)))
-
-    report_score('PRED', pred_score_total, pred_words_total)
+    _report_score('PRED', pred_score_total, pred_words_total)
     if opt.tgt:
-        report_score('GOLD', gold_score_total, gold_words_total)
+        _report_score('GOLD', gold_score_total, gold_words_total)
+        if opt.report_bleu:
+            _report_bleu()
+        if opt.report_rouge:
+            _report_rouge()
 
     if opt.dump_beam:
         import json

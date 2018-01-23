@@ -146,6 +146,7 @@ def preprocess_opts(parser):
                        64 bytes.""")
 
     # Dictionary options, for text corpus
+
     group = parser.add_argument_group('Vocab')
     group.add_argument('-src_vocab',
                        help="Path to an existing source vocabulary")
@@ -203,6 +204,7 @@ def preprocess_opts(parser):
 
 def train_opts(parser):
     # Model loading/saving options
+
     group = parser.add_argument_group('General')
     group.add_argument('-data', required=True,
                        help="""Path prefix to the ".train.pt" and
@@ -241,7 +243,6 @@ def train_opts(parser):
                        help="""If a valid path is specified, then this will load
                        pretrained word embeddings on the decoder side.
                        See README for specific formatting instructions.""")
-
     # Fixed word vectors
     group.add_argument('-fix_word_vecs_enc',
                        action='store_true',
@@ -254,6 +255,18 @@ def train_opts(parser):
     group = parser.add_argument_group('Optimization- Type')
     group.add_argument('-batch_size', type=int, default=64,
                        help='Maximum batch size for training')
+    group.add_argument('-batch_type', default='sents',
+                       choices=["sents", "tokens"],
+                       help="""Batch grouping for batch_size. Standard
+                               is sents. Tokens will do dynamic batching""")
+    group.add_argument('-normalization', default='sents',
+                       choices=["sents", "tokens"],
+                       help='Normalization method of the gradient.')
+    group.add_argument('-accum_count', type=int, default=1,
+                       help="""Accumulate gradient this many times.
+                       Approximately equivalent to updating
+                       batch_size * accum_count batches at once.
+                       Recommended for Transformer.""")
     group.add_argument('-valid_batch_size', type=int, default=32,
                        help='Maximum batch size for validation')
     group.add_argument('-max_generator_batches', type=int, default=32,
@@ -303,7 +316,6 @@ def train_opts(parser):
                        Set to zero to turn off label smoothing.
                        For more detailed information, see:
                        https://arxiv.org/abs/1512.00567""")
-
     # learning rate
     group = parser.add_argument_group('Optimization- Rate')
     group.add_argument('-learning_rate', type=float, default=1.0,
@@ -361,6 +373,12 @@ def translate_opts(parser):
     group.add_argument('-output', default='pred.txt',
                        help="""Path to output the predictions (each line will
                        be the decoded sequence""")
+    group.add_argument('-report_bleu', action='store_true',
+                       help="""Report bleu score after translation,
+                       call tools/multi-bleu.perl on command line""")
+    group.add_argument('-report_rouge', action='store_true',
+                       help="""Report rouge 1/2/3/L/SU4 score after translation
+                       call tools/test_rouge.py on command line""")
 
     # Options most relevant to summarization.
     group.add_argument('-dynamic_dict', action='store_true',
@@ -371,6 +389,12 @@ def translate_opts(parser):
     group = parser.add_argument_group('Beam')
     group.add_argument('-beam_size',  type=int, default=5,
                        help='Beam size')
+    group.add_argument('-min_length', type=int, default=0,
+                       help='Minimum prediction length')
+    group.add_argument('-max_length', type=int, default=100,
+                       help='Maximum prediction length.')
+    group.add_argument('-max_sent_length', action=DeprecateAction,
+                       help="Deprecated, use `-max_length` instead")
 
     # Alpha and Beta values for Google Length + Coverage penalty
     # Described here: https://arxiv.org/pdf/1609.08144.pdf, Section 7
@@ -379,8 +403,6 @@ def translate_opts(parser):
                         (higher = longer generation)""")
     group.add_argument('-beta', type=float, default=-0.,
                        help="""Coverage penalty parameter""")
-    group.add_argument('-max_sent_length', type=int, default=100,
-                       help='Maximum sentence length.')
     group.add_argument('-replace_unk', action="store_true",
                        help="""Replace the generated UNK tokens with the
                        source token that had highest attention weight. If
@@ -424,6 +446,11 @@ def add_md_help_argument(parser):
                         help='print Markdown-formatted help text and exit.')
 
 
+# MARKDOWN boilerplate
+
+# Copyright 2016 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
 class MarkdownHelpFormatter(argparse.HelpFormatter):
     """A really bare-bones argparse help formatter that generates valid markdown.
     This will generate something like:

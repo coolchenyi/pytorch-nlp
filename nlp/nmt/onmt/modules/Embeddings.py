@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from nlp.nmt.onmt.modules import BottleLinear, Elementwise
+from nlp.nmt.onmt.modules.UtilClass import BottleLinear, Elementwise
 from nlp.nmt.onmt.Utils import aeq
 
 

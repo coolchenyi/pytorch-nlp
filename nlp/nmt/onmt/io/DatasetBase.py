@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from itertools import chain
-import nlp.text.data
+from nlp.text.data import Dataset, Example
 from nlp.nmt.onmt.Utils import aeq
 
 
@@ -11,7 +11,7 @@ BOS_WORD = '<s>'
 EOS_WORD = '</s>'
 
 
-class ONMTDatasetBase(nlp.text.data.Dataset):
+class ONMTDatasetBase(Dataset):
     """
     A dataset basically supports iteration over all the examples
     it contains. We currently have 3 datasets inheriting this base
@@ -42,24 +42,6 @@ class ONMTDatasetBase(nlp.text.data.Dataset):
         fields = load_fields_from_vocab(vocab_dict.items(), self.data_type)
         self.fields = dict([(k, f) for (k, f) in fields.items()
                            if k in self.examples[0].__dict__])
-
-    def collapse_copy_scores(self, scores, batch, tgt_vocab):
-        """
-        Given scores from an expanded dictionary
-        corresponeding to a batch, sums together copies,
-        with a dictionary word when it is ambigious.
-        """
-        offset = len(tgt_vocab)
-        for b in range(batch.batch_size):
-            index = batch.indices.data[b]
-            src_vocab = self.src_vocabs[index]
-            for i in range(1, len(src_vocab)):
-                sw = src_vocab.itos[i]
-                ti = tgt_vocab.stoi[sw]
-                if ti != 0:
-                    scores[:, b, ti] += scores[:, b, offset + i]
-                    scores[:, b, offset + i].fill_(1e-20)
-        return scores
 
     @staticmethod
     def coalesce_datasets(datasets):
@@ -141,7 +123,7 @@ class ONMTDatasetBase(nlp.text.data.Dataset):
         Returns:
             the created `Example` object.
         """
-        ex = nlp.text.data.Example()
+        ex = Example()
         for (name, field), val in zip(fields, data):
             if field is not None:
                 setattr(ex, name, field.preprocess(val))

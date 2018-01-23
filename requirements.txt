@@ -1,6 +1,6 @@
-pytorch==0.2.0
-tqdm==4.15.0
-python==3.5.3
+pytorch
+tqdm
+python
 numpy
 torch
 six

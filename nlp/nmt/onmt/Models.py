@@ -6,8 +6,9 @@ from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence as pack
 from torch.nn.utils.rnn import pad_packed_sequence as unpack
 
-import nlp.nmt.onmt.modules
 from nlp.nmt.onmt.Utils import aeq
+from nlp.nmt.onmt.modules import StackedRNN, SRU, GlobalAttention
+from nlp.nmt.onmt.modules.Gate import context_gate_factory
 
 
 class EncoderBase(nn.Module):
@@ -102,7 +103,7 @@ class RNNEncoder(EncoderBase):
         if rnn_type == "SRU":
             # SRU doesn't support PackedSequence.
             self.no_pack_padded_seq = True
-            self.rnn = nlp.nmt.onmt.modules.SRU(
+            self.rnn = SRU.SRU(
                     input_size=embeddings.embedding_size,
                     hidden_size=hidden_size,
                     num_layers=num_layers,
@@ -200,14 +201,14 @@ class RNNDecoderBase(nn.Module):
         # Set up the context gate.
         self.context_gate = None
         if context_gate is not None:
-            self.context_gate = nlp.nmt.onmt.modules.context_gate_factory(
+            self.context_gate = context_gate_factory(
                 context_gate, self._input_size,
                 hidden_size, hidden_size, hidden_size
             )
 
         # Set up the standard attention.
         self._coverage = coverage_attn
-        self.attn = nlp.nmt.onmt.modules.GlobalAttention(
+        self.attn = GlobalAttention.GlobalAttention(
             hidden_size, coverage=coverage_attn,
             attn_type=attn_type
         )
@@ -215,7 +216,7 @@ class RNNDecoderBase(nn.Module):
         # Set up a separated copy attention layer, if needed.
         self._copy = False
         if copy_attn:
-            self.copy_attn = nlp.nmt.onmt.modules.GlobalAttention(
+            self.copy_attn = GlobalAttention.GlobalAttention(
                 hidden_size, attn_type=attn_type
             )
             self._copy = True
@@ -366,7 +367,7 @@ class StdRNNDecoder(RNNDecoderBase):
         """
         # Use pytorch version when available.
         if rnn_type == "SRU":
-            return nlp.nmt.onmt.modules.SRU(
+            return SRU.SRU(
                     input_size, hidden_size,
                     num_layers=num_layers,
                     dropout=dropout)
@@ -477,9 +478,9 @@ class InputFeedRNNDecoder(RNNDecoderBase):
         assert not rnn_type == "SRU", "SRU doesn't support input feed! " \
                 "Please set -input_feed 0!"
         if rnn_type == "LSTM":
-            stacked_cell = nlp.nmt.onmt.modules.StackedLSTM
+            stacked_cell = StackedRNN.StackedLSTM
         else:
-            stacked_cell = nlp.nmt.onmt.modules.StackedGRU
+            stacked_cell = StackedRNN.StackedGRU
         return stacked_cell(num_layers, input_size,
                             hidden_size, dropout)
 

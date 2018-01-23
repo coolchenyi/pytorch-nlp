@@ -10,8 +10,8 @@ import nlp.nmt.onmt.modules
 from nlp.nmt.onmt.Models import NMTModel, MeanEncoder, RNNEncoder, \
                         StdRNNDecoder, InputFeedRNNDecoder
 from nlp.nmt.onmt.modules import Embeddings, ImageEncoder, CopyGenerator, \
-                         TransformerEncoder, TransformerDecoder, \
-                         CNNEncoder, CNNDecoder
+                         Transformer, Conv2Conv
+from nlp.nmt.onmt.io.IO import load_fields_from_vocab, collect_feature_vocabs, PAD_WORD
 from nlp.nmt.onmt.Utils import use_gpu
 
 
@@ -29,15 +29,15 @@ def make_embeddings(opt, word_dict, feature_dicts, for_encoder=True):
     else:
         embedding_dim = opt.tgt_word_vec_size
 
-    word_padding_idx = word_dict.stoi[nlp.nmt.onmt.io.PAD_WORD]
+    word_padding_idx = word_dict.stoi[PAD_WORD]
     num_word_embeddings = len(word_dict)
 
-    feats_padding_idx = [feat_dict.stoi[nlp.nmt.onmt.io.PAD_WORD]
+    feats_padding_idx = [feat_dict.stoi[PAD_WORD]
                          for feat_dict in feature_dicts]
     num_feat_embeddings = [len(feat_dict) for feat_dict in
                            feature_dicts]
 
-    return Embeddings(word_vec_size=embedding_dim,
+    return Embeddings.Embeddings(word_vec_size=embedding_dim,
                       position_encoding=opt.position_encoding,
                       feat_merge=opt.feat_merge,
                       feat_vec_exponent=opt.feat_vec_exponent,
@@ -57,10 +57,10 @@ def make_encoder(opt, embeddings):
         embeddings (Embeddings): vocab embeddings for this encoder.
     """
     if opt.encoder_type == "transformer":
-        return TransformerEncoder(opt.enc_layers, opt.rnn_size,
+        return Transformer.TransformerEncoder(opt.enc_layers, opt.rnn_size,
                                   opt.dropout, embeddings)
     elif opt.encoder_type == "cnn":
-        return CNNEncoder(opt.enc_layers, opt.rnn_size,
+        return Conv2Conv.CNNEncoder(opt.enc_layers, opt.rnn_size,
                           opt.cnn_kernel_width,
                           opt.dropout, embeddings)
     elif opt.encoder_type == "mean":
@@ -79,11 +79,11 @@ def make_decoder(opt, embeddings):
         embeddings (Embeddings): vocab embeddings for this decoder.
     """
     if opt.decoder_type == "transformer":
-        return TransformerDecoder(opt.dec_layers, opt.rnn_size,
+        return Transformer.TransformerDecoder(opt.dec_layers, opt.rnn_size,
                                   opt.global_attention, opt.copy_attn,
                                   opt.dropout, embeddings)
     elif opt.decoder_type == "cnn":
-        return CNNDecoder(opt.dec_layers, opt.rnn_size,
+        return Conv2Conv.CNNDecoder(opt.dec_layers, opt.rnn_size,
                           opt.global_attention, opt.copy_attn,
                           opt.cnn_kernel_width, opt.dropout,
                           embeddings)
@@ -110,7 +110,7 @@ def make_decoder(opt, embeddings):
 def load_test_model(opt, dummy_opt):
     checkpoint = torch.load(opt.model,
                             map_location=lambda storage, loc: storage)
-    fields = nlp.nmt.onmt.io.load_fields_from_vocab(
+    fields = load_fields_from_vocab(
         checkpoint['vocab'], data_type=opt.data_type)
 
     model_opt = checkpoint['opt']
@@ -142,19 +142,19 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
     # Make encoder.
     if model_opt.model_type == "text":
         src_dict = fields["src"].vocab
-        feature_dicts = nlp.nmt.onmt.io.collect_feature_vocabs(fields, 'src')
+        feature_dicts = collect_feature_vocabs(fields, 'src')
         src_embeddings = make_embeddings(model_opt, src_dict,
                                          feature_dicts)
         encoder = make_encoder(model_opt, src_embeddings)
     elif model_opt.model_type == "img":
-        encoder = ImageEncoder(model_opt.enc_layers,
+        encoder = ImageEncoder.ImageEncoder(model_opt.enc_layers,
                                model_opt.brnn,
                                model_opt.rnn_size,
                                model_opt.dropout)
 
     # Make decoder.
     tgt_dict = fields["tgt"].vocab
-    feature_dicts = nlp.nmt.onmt.io.collect_feature_vocabs(fields, 'tgt')
+    feature_dicts = collect_feature_vocabs(fields, 'tgt')
     tgt_embeddings = make_embeddings(model_opt, tgt_dict,
                                      feature_dicts, for_encoder=False)
 
@@ -181,7 +181,7 @@ def make_base_model(model_opt, fields, gpu, checkpoint=None):
         if model_opt.share_decoder_embeddings:
             generator[0].weight = decoder.embeddings.word_lut.weight
     else:
-        generator = CopyGenerator(model_opt.rnn_size,
+        generator = CopyGenerator.CopyGenerator(model_opt.rnn_size,
                                   fields["tgt"].vocab)
 
     # Load the model states from checkpoint or initialize them.

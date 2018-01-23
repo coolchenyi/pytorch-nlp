@@ -3,8 +3,10 @@
 import torch
 from torch.autograd import Variable
 
-import nlp.nmt.onmt.translate.Beam
-import nlp.nmt.onmt.io
+from nlp.nmt.onmt.io.IO import make_features
+from nlp.nmt.onmt.io.DatasetBase import BOS_WORD, EOS_WORD, PAD_WORD
+
+from nlp.nmt.onmt.translate.Beam import Beam
 
 
 class Translator(object):
@@ -27,7 +29,7 @@ class Translator(object):
                  beam_size, n_best=1,
                  max_length=100,
                  global_scorer=None, copy_attn=False, cuda=False,
-                 beam_trace=False):
+                 beam_trace=False, min_length=0):
         self.model = model
         self.fields = fields
         self.n_best = n_best
@@ -36,6 +38,7 @@ class Translator(object):
         self.copy_attn = copy_attn
         self.beam_size = beam_size
         self.cuda = cuda
+        self.min_length = min_length
 
         # for debugging
         self.beam_accum = None
@@ -63,12 +66,13 @@ class Translator(object):
         batch_size = batch.batch_size
         data_type = data.data_type
         vocab = self.fields["tgt"].vocab
-        beam = [nlp.nmt.onmt.translate.Beam(beam_size, n_best=self.n_best,
+        beam = [Beam(beam_size, n_best=self.n_best,
                                     cuda=self.cuda,
                                     global_scorer=self.global_scorer,
-                                    pad=vocab.stoi[nlp.nmt.onmt.io.PAD_WORD],
-                                    eos=vocab.stoi[nlp.nmt.onmt.io.EOS_WORD],
-                                    bos=vocab.stoi[nlp.nmt.onmt.io.BOS_WORD])
+                                    pad=vocab.stoi[PAD_WORD],
+                                    eos=vocab.stoi[EOS_WORD],
+                                    bos=vocab.stoi[BOS_WORD],
+                                    min_length=self.min_length)
                 for __ in range(batch_size)]
 
         # Help functions for working with beams and batches
@@ -83,7 +87,7 @@ class Translator(object):
             return m.view(beam_size, batch_size, -1)
 
         # (1) Run the encoder on the src.
-        src = nlp.nmt.onmt.io.make_features(batch, 'src', data_type)
+        src = make_features(batch, 'src', data_type)
         src_lengths = None
         if data_type == 'text':
             _, src_lengths = batch.src
@@ -184,8 +188,8 @@ class Translator(object):
             _, src_lengths = batch.src
         else:
             src_lengths = None
-        src = nlp.nmt.onmt.io.make_features(batch, 'src', data_type)
-        tgt_in = nlp.nmt.onmt.io.make_features(batch, 'tgt')[:-1]
+        src = make_features(batch, 'src', data_type)
+        tgt_in = make_features(batch, 'tgt')[:-1]
 
         #  (1) run the encoder on the src
         enc_states, context = self.model.encoder(src, src_lengths)
@@ -199,7 +203,7 @@ class Translator(object):
         dec_out, dec_states, attn = self.model.decoder(
             tgt_in, context, dec_states, context_lengths=src_lengths)
 
-        tgt_pad = self.fields["tgt"].vocab.stoi[nlp.nmt.onmt.io.PAD_WORD]
+        tgt_pad = self.fields["tgt"].vocab.stoi[PAD_WORD]
         for dec, tgt in zip(dec_out, batch.tgt[1:].data):
             # Log prob of each word.
             out = self.model.generator.forward(dec)

@@ -5,9 +5,10 @@ import torch.nn.functional as F
 import torch
 import torch.cuda
 
-import nlp.nmt.onmt
-import nlp.nmt.onmt.io
 from nlp.nmt.onmt.Utils import aeq
+from nlp.nmt.onmt import Loss
+from nlp.nmt.onmt.io import TextDataset
+from nlp.nmt.onmt.io.DatasetBase import PAD_WORD
 
 
 class CopyGenerator(nn.Module):
@@ -77,7 +78,7 @@ class CopyGenerator(nn.Module):
 
         # Original probabilities.
         logits = self.linear(hidden)
-        logits[:, self.tgt_dict.stoi[nlp.nmt.onmt.io.PAD_WORD]] = -float('inf')
+        logits[:, self.tgt_dict.stoi[PAD_WORD]] = -float('inf')
         prob = F.softmax(logits)
 
         # Probability of copying p(z=1) batch.
@@ -121,15 +122,18 @@ class CopyGeneratorCriterion(object):
         return loss
 
 
-class CopyGeneratorLossCompute(nlp.nmt.onmt.Loss.LossComputeBase):
+class CopyGeneratorLossCompute(Loss.LossComputeBase):
     """
     Copy Generator Loss Computation.
     """
-    def __init__(self, generator, tgt_vocab, dataset,
+    def __init__(self, generator, tgt_vocab,
                  force_copy, eps=1e-20):
-        super(CopyGeneratorLossCompute, self).__init__(generator, tgt_vocab)
+        super(CopyGeneratorLossCompute, self).__init__(
+            generator, tgt_vocab)
 
-        self.dataset = dataset
+        # We lazily load datasets when there are more than one, so postpone
+        # the setting of cur_dataset.
+        self.cur_dataset = None
         self.force_copy = force_copy
         self.criterion = CopyGeneratorCriterion(len(tgt_vocab), force_copy,
                                                 self.padding_idx)
@@ -166,9 +170,9 @@ class CopyGeneratorLossCompute(nlp.nmt.onmt.Loss.LossComputeBase):
         loss = self.criterion(scores, align, target)
 
         scores_data = scores.data.clone()
-        scores_data = self.dataset.collapse_copy_scores(
+        scores_data = TextDataset.TextDataset.collapse_copy_scores(
                 self._unbottle(scores_data, batch.batch_size),
-                batch, self.tgt_vocab)
+                batch, self.tgt_vocab, self.cur_dataset.src_vocabs)
         scores_data = self._bottle(scores_data)
 
         # Correct target copy token instead of <unk>
