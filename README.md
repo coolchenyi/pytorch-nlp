@@ -37,12 +37,28 @@ python translate.py -model demo-model_epochX_PPL.pt -src data/nmt/src-test.txt -
 
 ## 4 chatbot
 
-update soon ...
+### 4.1 Train the model
+
+```bash
+python main.py -tr pytorch-nlp/data/chatbot/train_little.txt -sd pytorch-nlp/data/chatbot/save 
+```
+
+### 4.2 Test the model
+
+```bash
+python main.py -te pytorch-nlp/data/chatbot/model/model.tar \
+-c pytorch-nlp/data/chatbot/train_little.txt \
+-sd pytorch-nlp/data/chatbot/save
+```
 
 ## 5 speech recognition
 
 update soon ...
 
-## 6 text to speech
 
-update soon ...
+## reference
+
+https://github.com/OpenNMT/OpenNMT-py
+
+https://github.com/ywk991112/pytorch-chatbot
+
