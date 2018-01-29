@@ -6,3 +6,4 @@ torch
 six
 requests
 pycrayon
+tensorboardX
