@@ -53,12 +53,23 @@ python main.py -te pytorch-nlp/data/chatbot/model/model.tar \
 
 ## 5 speech recognition
 
-update soon ...
+### 5.1 Train the model
 
+```bash
+python train.py --train-manifest data/train_manifest.csv --val-manifest data/val_manifest.csv
+```
+
+### 5.2 Testing/Inference
+
+```bash
+python test.py --model-path models/deepspeech.pth.tar --test-manifest /path/to/test_manifest.csv
+```
 
 ## reference
 
 https://github.com/OpenNMT/OpenNMT-py
 
 https://github.com/ywk991112/pytorch-chatbot
+
+https://github.com/SeanNaren/deepspeech.pytorch
 
