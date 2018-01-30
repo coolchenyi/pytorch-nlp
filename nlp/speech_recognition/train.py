@@ -26,14 +26,14 @@ parser.add_argument('--labels-path', default='labels.json', help='Contains all c
 parser.add_argument('--window-size', default=.02, type=float, help='Window size for spectrogram in seconds')
 parser.add_argument('--window-stride', default=.01, type=float, help='Window stride for spectrogram in seconds')
 parser.add_argument('--window', default='hamming', help='Window type for spectrogram generation')
-parser.add_argument('--hidden-size', default=100, type=int, help='Hidden size of RNNs')
-parser.add_argument('--hidden-layers', default=2, type=int, help='Number of RNN layers')
+parser.add_argument('--hidden-size', default=50, type=int, help='Hidden size of RNNs')
+parser.add_argument('--hidden-layers', default=1, type=int, help='Number of RNN layers')
 parser.add_argument('--rnn-type', default='gru', help='Type of the RNN. rnn|gru|lstm are supported')
 parser.add_argument('--epochs', default=2, type=int, help='Number of training epochs')
 parser.add_argument('--cuda', dest='cuda', action='store_true', help='Use cuda to train model')
 parser.add_argument('--lr', '--learning-rate', default=3e-4, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--max-norm', default=400, type=int, help='Norm cutoff to prevent explosion of gradients')
+parser.add_argument('--max-norm', default=100, type=int, help='Norm cutoff to prevent explosion of gradients')
 parser.add_argument('--learning-anneal', default=1.1, type=float, help='Annealing applied to learning rate every epoch')
 parser.add_argument('--silent', dest='silent', action='store_true', help='Turn off progress tracking per iteration')
 parser.add_argument('--checkpoint', dest='checkpoint', action='store_true', help='Enables checkpoint saving of model')
@@ -59,7 +59,7 @@ parser.add_argument('--noise-max', default=0.5,
                     help='Maximum noise levels to sample from. Maximum 1.0', type=float)
 parser.add_argument('--no-shuffle', dest='no_shuffle', action='store_true',
                     help='Turn off shuffling and sample from dataset based on sequence length (smallest to largest)')
-parser.add_argument('--no-bidirectional', dest='bidirectional', action='store_false', default=False,
+parser.add_argument('--no-bidirectional', dest='bidirectional', action='store_false', default=True,
                     help='Turn off bi-directional RNNs, introduces lookahead convolution')
 
 torch.manual_seed(123456)
@@ -175,7 +175,8 @@ if __name__ == '__main__':
                     X=x_axis,
                     Y=y_axis,
                     opts=opts,
-                )
+                )            # Temporary fix for pytorch #2830 & #1442 while pull request #3658 in not incorporated in a release
+
             if args.tensorboard and \
                             package[
                                 'loss_results'] is not None and start_epoch > 0:  # Previous scores to tensorboard logs
